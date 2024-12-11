@@ -12,46 +12,19 @@ class CalendarEntity
   end
 
   def block_schedule(event_name, start_date, end_date)
-    begin
-      validate_event(event_name, start_date, end_date)
+    event = register(event_name, start_date, end_date)
 
-      event = register(event_name, start_date, end_date)
+    temp_date = start_date.dup
+    while (temp_date <= end_date) do
+      set_schedule(event, temp_date)
 
-      # TODO, we could use start_date directly
-      temp_date = start_date.dup
-
-      while (temp_date <= end_date) do
-        set_schedule(event, temp_date)
-
-        temp_date = temp_date.to_time + 1800
-      end
-
-      list
-    rescue ExistingRecord => e
-      puts "Error: #{e.message}"
+      temp_date = temp_date.to_time + 1800
     end
+
+    list
   end
 
   private
-
-  def validate_event(event_name, start_date, end_date)
-    return if list.empty?
-
-    # Check if I have an existing schedule
-    while (start_date <= end_date) do
-      day = start_date.strftime('%w').to_i # %w - Day of the week (Sunday is 0, 0..6) 0 - Sunday, 6 - Saturday
-      time = start_date.strftime('%H:%M') # Time (Hour, Minute, Second, Subsecond):   %R - 24-hour time (%H:%M)
-      arr = time.split(":")
-      hour = arr[0].to_i
-      minutes = arr[1].to_i
-
-      half_hour = minutes == 30? hour + 0.5: hour
-
-      raise ExistingRecord.new "The event #{event_name} conflicts with another existing event" if list.dig("t_#{day}", "t_#{half_hour}").present?
-
-      start_date = start_date.to_time + 1800
-    end
-  end
 
   def register(event_name, start_date, end_date)
     event = EventEntity.new(event_name, start_date, end_date)
